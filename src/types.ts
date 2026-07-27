@@ -14,6 +14,7 @@ export interface KeySignature {
   name: string; // e.g. "Do mayor / La menor"
   sharps: string[]; // array of altered notes e.g. ['F', 'C', 'G']
   flats: string[]; // array of altered notes e.g. ['B', 'E', 'A']
+  rootSemitone: number; // Major scale root semitone in octave (0..11, C=0)
 }
 
 export interface KeyMapping {

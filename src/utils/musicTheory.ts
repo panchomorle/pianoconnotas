@@ -31,26 +31,37 @@ export function getFrequencyFromMidi(midi: number): number {
 }
 
 export const KEY_SIGNATURES: KeySignature[] = [
-  { id: 'C_maj', name: 'Do mayor / La menor (0)', sharps: [], flats: [] },
+  { id: 'C_maj', name: 'Do mayor / La menor (0)', sharps: [], flats: [], rootSemitone: 0 },
   
   // Sostenidos (#)
-  { id: 'G_maj', name: 'Sol mayor / Mi menor (1♯)', sharps: ['F'], flats: [] },
-  { id: 'D_maj', name: 'Re mayor / Si menor (2♯)', sharps: ['F', 'C'], flats: [] },
-  { id: 'A_maj', name: 'La mayor / Fa♯ menor (3♯)', sharps: ['F', 'C', 'G'], flats: [] },
-  { id: 'E_maj', name: 'Mi mayor / Do♯ menor (4♯)', sharps: ['F', 'C', 'G', 'D'], flats: [] },
-  { id: 'B_maj', name: 'Si mayor / Sol♯ menor (5♯)', sharps: ['F', 'C', 'G', 'D', 'A'], flats: [] },
-  { id: 'Fs_maj', name: 'Fa♯ mayor / Re♯ menor (6♯)', sharps: ['F', 'C', 'G', 'D', 'A', 'E'], flats: [] },
-  { id: 'Cs_maj', name: 'Do♯ mayor / La♯ menor (7♯)', sharps: ['F', 'C', 'G', 'D', 'A', 'E', 'B'], flats: [] },
+  { id: 'G_maj', name: 'Sol mayor / Mi menor (1♯)', sharps: ['F'], flats: [], rootSemitone: 7 },
+  { id: 'D_maj', name: 'Re mayor / Si menor (2♯)', sharps: ['F', 'C'], flats: [], rootSemitone: 2 },
+  { id: 'A_maj', name: 'La mayor / Fa♯ menor (3♯)', sharps: ['F', 'C', 'G'], flats: [], rootSemitone: 9 },
+  { id: 'E_maj', name: 'Mi mayor / Do♯ menor (4♯)', sharps: ['F', 'C', 'G', 'D'], flats: [], rootSemitone: 4 },
+  { id: 'B_maj', name: 'Si mayor / Sol♯ menor (5♯)', sharps: ['F', 'C', 'G', 'D', 'A'], flats: [], rootSemitone: 11 },
+  { id: 'Fs_maj', name: 'Fa♯ mayor / Re♯ menor (6♯)', sharps: ['F', 'C', 'G', 'D', 'A', 'E'], flats: [], rootSemitone: 6 },
+  { id: 'Cs_maj', name: 'Do♯ mayor / La♯ menor (7♯)', sharps: ['F', 'C', 'G', 'D', 'A', 'E', 'B'], flats: [], rootSemitone: 1 },
 
   // Bemoles (b)
-  { id: 'F_maj', name: 'Fa mayor / Re menor (1♭)', sharps: [], flats: ['B'] },
-  { id: 'Bb_maj', name: 'Si♭ mayor / Sol menor (2♭)', sharps: [], flats: ['B', 'E'] },
-  { id: 'Eb_maj', name: 'Mi♭ mayor / Do menor (3♭)', sharps: [], flats: ['B', 'E', 'A'] },
-  { id: 'Ab_maj', name: 'La♭ mayor / Fa menor (4♭)', sharps: [], flats: ['B', 'E', 'A', 'D'] },
-  { id: 'Db_maj', name: 'Re♭ mayor / Si♭ menor (5♭)', sharps: [], flats: ['B', 'E', 'A', 'D', 'G'] },
-  { id: 'Gb_maj', name: 'Sol♭ mayor / Mi♭ menor (6♭)', sharps: [], flats: ['B', 'E', 'A', 'D', 'G', 'C'] },
-  { id: 'Cb_maj', name: 'Do♭ mayor / La♭ menor (7♭)', sharps: [], flats: ['B', 'E', 'A', 'D', 'G', 'C', 'F'] },
+  { id: 'F_maj', name: 'Fa mayor / Re menor (1♭)', sharps: [], flats: ['B'], rootSemitone: 5 },
+  { id: 'Bb_maj', name: 'Si♭ mayor / Sol menor (2♭)', sharps: [], flats: ['B', 'E'], rootSemitone: 10 },
+  { id: 'Eb_maj', name: 'Mi♭ mayor / Do menor (3♭)', sharps: [], flats: ['B', 'E', 'A'], rootSemitone: 3 },
+  { id: 'Ab_maj', name: 'La♭ mayor / Fa menor (4♭)', sharps: [], flats: ['B', 'E', 'A', 'D'], rootSemitone: 8 },
+  { id: 'Db_maj', name: 'Re♭ mayor / Si♭ menor (5♭)', sharps: [], flats: ['B', 'E', 'A', 'D', 'G'], rootSemitone: 1 },
+  { id: 'Gb_maj', name: 'Sol♭ mayor / Mi♭ menor (6♭)', sharps: [], flats: ['B', 'E', 'A', 'D', 'G', 'C'], rootSemitone: 6 },
+  { id: 'Cb_maj', name: 'Do♭ mayor / La♭ menor (7♭)', sharps: [], flats: ['B', 'E', 'A', 'D', 'G', 'C', 'F'], rootSemitone: 11 },
 ];
+
+export const MAJOR_SCALE_INTERVALS = [0, 2, 4, 5, 7, 9, 11];
+
+export function getScaleSemitones(keySig: KeySignature): Set<number> {
+  const scaleSemitones = new Set<number>();
+  const root = keySig.rootSemitone;
+  MAJOR_SCALE_INTERVALS.forEach((interval) => {
+    scaleSemitones.add((root + interval) % 12);
+  });
+  return scaleSemitones;
+}
 
 export interface NoteKeySignatureSpelling {
   letter: string; // 'C', 'D', 'E', 'F', 'G', 'A', 'B'

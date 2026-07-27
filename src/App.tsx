@@ -253,6 +253,7 @@ export function App() {
           octaveCount={octaveCount}
           volume={volume}
           onVolumeChange={handleVolumeChange}
+          keySigId={keySigId}
         />
       </section>
 

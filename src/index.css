@@ -892,3 +892,36 @@ body {
   justify-content: space-between;
   gap: 8px;
 }
+
+/* Subtle Violet Tint for Scale Keys */
+.white-key.in-scale {
+  background: linear-gradient(180deg, #f5e6ff 0%, #e9d5ff 75%, #d8b4fe 100%);
+  border-right: 1px solid #c084fc;
+  box-shadow: inset 0 -4px 6px rgba(168, 85, 247, 0.22), 0 2px 5px rgba(168, 85, 247, 0.2);
+}
+
+.white-key.in-scale:hover {
+  background: linear-gradient(180deg, #faf0ff 0%, #e9d5ff 75%, #c084fc 100%);
+}
+
+.black-key.in-scale {
+  background: linear-gradient(180deg, #3b0764 0%, #2e1065 75%, #1e1b4b 100%);
+  border: 1px solid #7e22ce;
+  border-top: none;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.2), 0 4px 8px rgba(126, 34, 206, 0.4);
+}
+
+.black-key.in-scale:hover {
+  background: linear-gradient(180deg, #581c87 0%, #3b0764 75%, #2e1065 100%);
+}
+
+/* Dark Theme Overrides for Black Keys */
+[data-theme="dark"] .black-key.in-scale {
+  background: linear-gradient(180deg, #581c87 0%, #3b0764 75%, #1e1b4b 100%);
+  border: 1px solid #a855f7;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.25), 0 4px 10px rgba(168, 85, 247, 0.35);
+}
+
+[data-theme="dark"] .black-key.in-scale:hover {
+  background: linear-gradient(180deg, #6b21a8 0%, #581c87 75%, #3b0764 100%);
+}

@@ -1,5 +1,5 @@
 import type { NoteInfo, KeyMapping } from '../types';
-import { getMidiNumber, getNoteInfoFromMidi, IS_BLACK_KEY } from '../utils/musicTheory';
+import { KEY_SIGNATURES, getMidiNumber, getNoteInfoFromMidi, IS_BLACK_KEY, getScaleSemitones } from '../utils/musicTheory';
 import { ChevronLeft, ChevronRight, RotateCcw, Volume2, VolumeX } from 'lucide-react';
 
 interface PianoProps {
@@ -14,6 +14,7 @@ interface PianoProps {
   octaveCount: number;
   volume: number;
   onVolumeChange: (newVol: number) => void;
+  keySigId: string;
 }
 
 export const Piano: React.FC<PianoProps> = ({
@@ -28,7 +29,11 @@ export const Piano: React.FC<PianoProps> = ({
   octaveCount,
   volume,
   onVolumeChange,
+  keySigId,
 }) => {
+  const currentKeySig = KEY_SIGNATURES.find((k) => k.id === keySigId) || KEY_SIGNATURES[0];
+  const scaleSemitones = getScaleSemitones(currentKeySig);
+
   const totalSemitones = octaveCount * 12;
   const semitones = Array.from({ length: totalSemitones }, (_, i) => i);
 
@@ -53,7 +58,7 @@ export const Piano: React.FC<PianoProps> = ({
 
   return (
     <div className="piano-container">
-      {/* Compact Piano Controls with Volume Knob */}
+      {/* Compact Piano Controls */}
       <div className="piano-toolbar">
         <div className="piano-toolbar-group">
           <div className="octave-selector">
@@ -114,6 +119,7 @@ export const Piano: React.FC<PianoProps> = ({
           const midi = getMidiNumber(baseOctave, relativeIndex);
           const noteInfo = getNoteInfoFromMidi(midi);
           const isActive = activeMidiSet.has(midi);
+          const isScaleNote = scaleSemitones.has(noteInfo.semitoneInOctave);
           const mapping = keyMapping[relativeIndex];
           const keyLabel = mapping ? mapping.key : '';
 
@@ -123,7 +129,7 @@ export const Piano: React.FC<PianoProps> = ({
           return (
             <div
               key={`white-${relativeIndex}`}
-              className={`piano-key white-key ${isActive ? 'active' : ''}`}
+              className={`piano-key white-key ${isScaleNote ? 'in-scale' : ''} ${isActive ? 'active' : ''}`}
               style={{ left: `${leftPercent}%`, width: `${whiteKeyWidthPercent}%` }}
               onMouseDown={(e) => {
                 if (e.button === 0) onNoteStart(midi);
@@ -156,6 +162,7 @@ export const Piano: React.FC<PianoProps> = ({
           const midi = getMidiNumber(baseOctave, relativeIndex);
           const noteInfo = getNoteInfoFromMidi(midi);
           const isActive = activeMidiSet.has(midi);
+          const isScaleNote = scaleSemitones.has(noteInfo.semitoneInOctave);
           const mapping = keyMapping[relativeIndex];
           const keyLabel = mapping ? mapping.key : '';
 
@@ -165,7 +172,7 @@ export const Piano: React.FC<PianoProps> = ({
           return (
             <div
               key={`black-${relativeIndex}`}
-              className={`piano-key black-key ${isActive ? 'active' : ''}`}
+              className={`piano-key black-key ${isScaleNote ? 'in-scale' : ''} ${isActive ? 'active' : ''}`}
               style={{ left: `${leftPercent}%`, width: `${blackKeyWidthPercent}%` }}
               onMouseDown={(e) => {
                 if (e.button === 0) onNoteStart(midi);
