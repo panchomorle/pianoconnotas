@@ -39,6 +39,24 @@ export function App() {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
+  const [isMobile, setIsMobile] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false
+  );
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 768px)');
+    const handleChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+
+    setIsMobile(mediaQuery.matches);
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    } else {
+      mediaQuery.addListener(handleChange);
+      return () => mediaQuery.removeListener(handleChange);
+    }
+  }, []);
+
   useEffect(() => {
     const handleResize = () => {
       setOctaveCount(window.innerWidth >= 1024 ? 3 : 2);
@@ -219,7 +237,10 @@ export function App() {
 
       {/* Main Workspace Layout with Resizable Columns */}
       <main className="workspace-layout">
-        <div className="staff-wrapper" style={{ width: `${leftPanelWidth}px`, flexShrink: 0 }}>
+        <div
+          className="staff-wrapper"
+          style={!isMobile ? { width: `${leftPanelWidth}px`, flexShrink: 0 } : { width: '100%' }}
+        >
           <StaffViewer
             lastNote={lastNote}
             clef={clef}

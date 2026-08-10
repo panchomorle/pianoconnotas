@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import type { NoteInfo, KeyMapping } from '../types';
 import { KEY_SIGNATURES, getMidiNumber, getNoteInfoFromMidi, IS_BLACK_KEY, getScaleSemitones } from '../utils/musicTheory';
 import { ChevronLeft, ChevronRight, RotateCcw, Volume2, VolumeX } from 'lucide-react';
@@ -31,30 +32,114 @@ export const Piano: React.FC<PianoProps> = ({
   onVolumeChange,
   keySigId,
 }) => {
+  const [isMobile, setIsMobile] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false
+  );
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 768px)');
+    const handleChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+
+    setIsMobile(mediaQuery.matches);
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    } else {
+      mediaQuery.addListener(handleChange);
+      return () => mediaQuery.removeListener(handleChange);
+    }
+  }, []);
+
   const currentKeySig = KEY_SIGNATURES.find((k) => k.id === keySigId) || KEY_SIGNATURES[0];
   const scaleSemitones = getScaleSemitones(currentKeySig);
 
   const totalSemitones = octaveCount * 12;
   const semitones = Array.from({ length: totalSemitones }, (_, i) => i);
 
-  let whiteCount = 0;
-  const semitoneWhiteIndexMap: number[] = [];
+  // Helper function for key context menu / right click rebind trigger
+  const handleKeyContextMenu = (
+    e: React.MouseEvent | React.TouchEvent,
+    relativeIndex: number,
+    noteInfo: NoteInfo
+  ) => {
+    e.preventDefault();
+    const nativeEv = e.nativeEvent as PointerEvent | MouseEvent;
+    // Do NOT open rebind modal on touch long-presses (sustain notes instead)
+    if ('pointerType' in nativeEv && nativeEv.pointerType === 'touch') {
+      return;
+    }
+    if (nativeEv.button === 2) {
+      onKeyRightClick(relativeIndex, noteInfo);
+    }
+  };
+
+  // Render a single key element (White or Black)
+  const renderPianoKey = (
+    relativeIndex: number,
+    leftPercent: number,
+    widthPercent: number,
+    isBlack: boolean
+  ) => {
+    const midi = getMidiNumber(baseOctave, relativeIndex);
+    const noteInfo = getNoteInfoFromMidi(midi);
+    const isActive = activeMidiSet.has(midi);
+    const isScaleNote = scaleSemitones.has(noteInfo.semitoneInOctave);
+    const mapping = keyMapping[relativeIndex];
+    const keyLabel = mapping ? mapping.key : '';
+
+    const keyTypeClass = isBlack ? 'black-key' : 'white-key';
+    const keyKeyStr = `${isBlack ? 'black' : 'white'}-${relativeIndex}`;
+
+    return (
+      <div
+        key={keyKeyStr}
+        className={`piano-key ${keyTypeClass} ${isScaleNote ? 'in-scale' : ''} ${isActive ? 'active' : ''}`}
+        style={{ left: `${leftPercent}%`, width: `${widthPercent}%` }}
+        onMouseDown={(e) => {
+          if (e.button === 0) onNoteStart(midi);
+        }}
+        onMouseUp={() => onNoteEnd(midi)}
+        onMouseLeave={() => onNoteEnd(midi)}
+        onTouchStart={(e) => {
+          e.preventDefault();
+          onNoteStart(midi);
+        }}
+        onTouchEnd={(e) => {
+          e.preventDefault();
+          onNoteEnd(midi);
+        }}
+        onTouchCancel={(e) => {
+          e.preventDefault();
+          onNoteEnd(midi);
+        }}
+        onContextMenu={(e) => handleKeyContextMenu(e, relativeIndex, noteInfo)}
+        title={`${noteInfo.spanishName} (${noteInfo.name}) - Clic derecho para reasignar`}
+      >
+        <div className="key-tag-wrapper">
+          <span className="key-binding-tag white">{keyLabel}</span>
+          <span className="key-note-name">{isBlack ? noteInfo.name : noteInfo.spanishName}</span>
+        </div>
+      </div>
+    );
+  };
+
+  // 1-Row Render Calculation (Desktop viewports)
+  let desktopWhiteCount = 0;
+  const desktopSemitoneWhiteIndexMap: number[] = [];
   semitones.forEach((i) => {
     const isBlack = IS_BLACK_KEY[i % 12];
     if (isBlack) {
-      semitoneWhiteIndexMap.push(whiteCount - 1);
+      desktopSemitoneWhiteIndexMap.push(desktopWhiteCount - 1);
     } else {
-      semitoneWhiteIndexMap.push(whiteCount);
-      whiteCount++;
+      desktopSemitoneWhiteIndexMap.push(desktopWhiteCount);
+      desktopWhiteCount++;
     }
   });
 
-  const totalWhiteKeys = whiteCount;
-  const whiteKeyWidthPercent = 100 / totalWhiteKeys;
-  const blackKeyWidthPercent = whiteKeyWidthPercent * 0.58;
-
-  const whiteKeys = semitones.filter((i) => !IS_BLACK_KEY[i % 12]);
-  const blackKeys = semitones.filter((i) => IS_BLACK_KEY[i % 12]);
+  const desktopWhiteKeyWidthPercent = 100 / desktopWhiteCount;
+  const desktopBlackKeyWidthPercent = desktopWhiteKeyWidthPercent * 0.58;
+  const desktopWhiteKeys = semitones.filter((i) => !IS_BLACK_KEY[i % 12]);
+  const desktopBlackKeys = semitones.filter((i) => IS_BLACK_KEY[i % 12]);
 
   return (
     <div className="piano-container">
@@ -86,7 +171,7 @@ export const Piano: React.FC<PianoProps> = ({
             </button>
           </div>
 
-          {/* Interactive Volume Control Knob / Slider */}
+          {/* Volume Control Slider */}
           <div className="volume-control-box" title="Ajustar volumen del piano">
             <button
               className="btn-icon"
@@ -114,93 +199,65 @@ export const Piano: React.FC<PianoProps> = ({
       </div>
 
       {/* Keyboard Bed */}
-      <div className="piano-keyboard">
-        {whiteKeys.map((relativeIndex) => {
-          const midi = getMidiNumber(baseOctave, relativeIndex);
-          const noteInfo = getNoteInfoFromMidi(midi);
-          const isActive = activeMidiSet.has(midi);
-          const isScaleNote = scaleSemitones.has(noteInfo.semitoneInOctave);
-          const mapping = keyMapping[relativeIndex];
-          const keyLabel = mapping ? mapping.key : '';
+      {isMobile ? (
+        /* Mobile 2-Step Stacked Layout */
+        <div className="piano-keyboard-steps">
+          {Array.from({ length: octaveCount }, (_, octaveIndex) => {
+            const stepStartRelIdx = octaveIndex * 12;
+            const stepSemitones = Array.from({ length: 12 }, (_, i) => stepStartRelIdx + i);
 
-          const whiteIdx = semitoneWhiteIndexMap[relativeIndex];
-          const leftPercent = whiteIdx * whiteKeyWidthPercent;
+            let stepWhiteCount = 0;
+            const stepSemitoneWhiteIndexMap: Record<number, number> = {};
+            stepSemitones.forEach((idx) => {
+              const isBlack = IS_BLACK_KEY[idx % 12];
+              if (isBlack) {
+                stepSemitoneWhiteIndexMap[idx] = stepWhiteCount - 1;
+              } else {
+                stepSemitoneWhiteIndexMap[idx] = stepWhiteCount;
+                stepWhiteCount++;
+              }
+            });
 
-          return (
-            <div
-              key={`white-${relativeIndex}`}
-              className={`piano-key white-key ${isScaleNote ? 'in-scale' : ''} ${isActive ? 'active' : ''}`}
-              style={{ left: `${leftPercent}%`, width: `${whiteKeyWidthPercent}%` }}
-              onMouseDown={(e) => {
-                if (e.button === 0) onNoteStart(midi);
-              }}
-              onMouseUp={() => onNoteEnd(midi)}
-              onMouseLeave={() => onNoteEnd(midi)}
-              onTouchStart={(e) => {
-                e.preventDefault();
-                onNoteStart(midi);
-              }}
-              onTouchEnd={(e) => {
-                e.preventDefault();
-                onNoteEnd(midi);
-              }}
-              onContextMenu={(e) => {
-                e.preventDefault();
-                onKeyRightClick(relativeIndex, noteInfo);
-              }}
-              title={`${noteInfo.spanishName} (${noteInfo.name}) - Clic derecho para reasignar`}
-            >
-              <div className="key-tag-wrapper">
-                <span className="key-binding-tag white">{keyLabel}</span>
-                <span className="key-note-name">{noteInfo.spanishName}</span>
+            const stepWhiteKeyWidthPercent = 100 / 7;
+            const stepBlackKeyWidthPercent = stepWhiteKeyWidthPercent * 0.58;
+
+            const stepWhiteKeys = stepSemitones.filter((i) => !IS_BLACK_KEY[i % 12]);
+            const stepBlackKeys = stepSemitones.filter((i) => IS_BLACK_KEY[i % 12]);
+
+            return (
+              <div key={`step-${octaveIndex}`} className="piano-keyboard step-keyboard">
+                {stepWhiteKeys.map((relativeIndex) => {
+                  const whiteIdx = stepSemitoneWhiteIndexMap[relativeIndex];
+                  const leftPercent = whiteIdx * stepWhiteKeyWidthPercent;
+                  return renderPianoKey(relativeIndex, leftPercent, stepWhiteKeyWidthPercent, false);
+                })}
+                {stepBlackKeys.map((relativeIndex) => {
+                  const leftWhiteIdx = stepSemitoneWhiteIndexMap[relativeIndex];
+                  const leftPercent =
+                    (leftWhiteIdx + 1) * stepWhiteKeyWidthPercent - stepBlackKeyWidthPercent / 2;
+                  return renderPianoKey(relativeIndex, leftPercent, stepBlackKeyWidthPercent, true);
+                })}
               </div>
-            </div>
-          );
-        })}
-
-        {blackKeys.map((relativeIndex) => {
-          const midi = getMidiNumber(baseOctave, relativeIndex);
-          const noteInfo = getNoteInfoFromMidi(midi);
-          const isActive = activeMidiSet.has(midi);
-          const isScaleNote = scaleSemitones.has(noteInfo.semitoneInOctave);
-          const mapping = keyMapping[relativeIndex];
-          const keyLabel = mapping ? mapping.key : '';
-
-          const leftWhiteIdx = semitoneWhiteIndexMap[relativeIndex];
-          const leftPercent = (leftWhiteIdx + 1) * whiteKeyWidthPercent - blackKeyWidthPercent / 2;
-
-          return (
-            <div
-              key={`black-${relativeIndex}`}
-              className={`piano-key black-key ${isScaleNote ? 'in-scale' : ''} ${isActive ? 'active' : ''}`}
-              style={{ left: `${leftPercent}%`, width: `${blackKeyWidthPercent}%` }}
-              onMouseDown={(e) => {
-                if (e.button === 0) onNoteStart(midi);
-              }}
-              onMouseUp={() => onNoteEnd(midi)}
-              onMouseLeave={() => onNoteEnd(midi)}
-              onTouchStart={(e) => {
-                e.preventDefault();
-                onNoteStart(midi);
-              }}
-              onTouchEnd={(e) => {
-                e.preventDefault();
-                onNoteEnd(midi);
-              }}
-              onContextMenu={(e) => {
-                e.preventDefault();
-                onKeyRightClick(relativeIndex, noteInfo);
-              }}
-              title={`${noteInfo.spanishName} (${noteInfo.name}) - Clic derecho para reasignar`}
-            >
-              <div className="key-tag-wrapper">
-                <span className="key-binding-tag black">{keyLabel}</span>
-                <span className="key-note-name">{noteInfo.name}</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      ) : (
+        /* Desktop 1-Row Layout */
+        <div className="piano-keyboard">
+          {desktopWhiteKeys.map((relativeIndex) => {
+            const whiteIdx = desktopSemitoneWhiteIndexMap[relativeIndex];
+            const leftPercent = whiteIdx * desktopWhiteKeyWidthPercent;
+            return renderPianoKey(relativeIndex, leftPercent, desktopWhiteKeyWidthPercent, false);
+          })}
+          {desktopBlackKeys.map((relativeIndex) => {
+            const leftWhiteIdx = desktopSemitoneWhiteIndexMap[relativeIndex];
+            const leftPercent =
+              (leftWhiteIdx + 1) * desktopWhiteKeyWidthPercent - desktopBlackKeyWidthPercent / 2;
+            return renderPianoKey(relativeIndex, leftPercent, desktopBlackKeyWidthPercent, true);
+          })}
+        </div>
+      )}
     </div>
   );
 };
+
