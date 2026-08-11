@@ -23,3 +23,20 @@ export interface KeyMapping {
     code: string;
   };
 }
+
+export interface SavedScore {
+  id: string;
+  name: string;
+  pdfData: ArrayBuffer | null;
+  clef: ClefType;
+  keySigId: string;
+  baseOctave: number;
+  volume: number;
+  zoomPercent?: number;
+  scrollSpeed?: number;
+  scrollTop?: number;
+  scrollLeft?: number;
+  updatedAt: number;
+  createdAt: number;
+}
+

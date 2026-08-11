@@ -4,20 +4,34 @@ import { Upload, ZoomIn, ZoomOut, Trash2, FileText, Play, Pause, FastForward } f
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
+export interface PdfViewerState {
+  zoomPercent?: number;
+  scrollSpeed?: number;
+  scrollTop?: number;
+  scrollLeft?: number;
+}
+
 interface PdfViewerProps {
   pdfFile: File | null;
   onPdfLoaded: (file: File | null) => void;
+  viewerState?: PdfViewerState;
+  onViewerStateChange?: (state: PdfViewerState) => void;
 }
 
-export const PdfViewer: React.FC<PdfViewerProps> = ({ pdfFile, onPdfLoaded }) => {
+export const PdfViewer: React.FC<PdfViewerProps> = ({
+  pdfFile,
+  onPdfLoaded,
+  viewerState,
+  onViewerStateChange,
+}) => {
   const [numPages, setNumPages] = useState<number>(0);
-  const [zoomPercent, setZoomPercent] = useState<number>(100); // 60% to 200%
+  const [zoomPercent, setZoomPercent] = useState<number>(viewerState?.zoomPercent ?? 100);
+  const [scrollSpeed, setScrollSpeed] = useState<number>(viewerState?.scrollSpeed ?? 2);
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [rendering, setRendering] = useState<boolean>(false);
 
   // Auto-scroll states
   const [isAutoScrolling, setIsAutoScrolling] = useState<boolean>(false);
-  const [scrollSpeed, setScrollSpeed] = useState<number>(2);
 
   // Mouse drag panning state (hand cursor drag across sheet music)
   const [isMouseDown, setIsMouseDown] = useState<boolean>(false);
@@ -31,9 +45,34 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ pdfFile, onPdfLoaded }) =>
   const containerRef = useRef<HTMLDivElement>(null);
   const pagesCanvasRef = useRef<Map<number, HTMLCanvasElement>>(new Map());
   const scrollAccumulatorRef = useRef<number>(0);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Synchronize viewerState props when changing active score
+  useEffect(() => {
+    if (viewerState?.zoomPercent !== undefined) {
+      setZoomPercent(viewerState.zoomPercent);
+    }
+    if (viewerState?.scrollSpeed !== undefined) {
+      setScrollSpeed(viewerState.scrollSpeed);
+    }
+  }, [viewerState?.zoomPercent, viewerState?.scrollSpeed, pdfFile]);
+
+  // Debounced notification to parent of zoom/scroll changes
+  const notifyViewerStateChange = (newZoom: number, newSpeed: number, newTop: number, newLeft: number) => {
+    if (!onViewerStateChange) return;
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+
+    debounceTimerRef.current = setTimeout(() => {
+      onViewerStateChange({
+        zoomPercent: newZoom,
+        scrollSpeed: newSpeed,
+        scrollTop: Math.round(newTop),
+        scrollLeft: Math.round(newLeft),
+      });
+    }, 350);
+  };
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    // Only drag with left mouse button (button 0)
     if (e.button !== 0 || !containerRef.current) return;
     setIsMouseDown(true);
     dragStartRef.current = {
@@ -49,12 +88,26 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ pdfFile, onPdfLoaded }) =>
     e.preventDefault();
     const dx = e.clientX - dragStartRef.current.startX;
     const dy = e.clientY - dragStartRef.current.startY;
-    containerRef.current.scrollLeft = dragStartRef.current.scrollLeft - dx;
-    containerRef.current.scrollTop = dragStartRef.current.scrollTop - dy;
+    const newLeft = dragStartRef.current.scrollLeft - dx;
+    const newTop = dragStartRef.current.scrollTop - dy;
+
+    containerRef.current.scrollLeft = newLeft;
+    containerRef.current.scrollTop = newTop;
+    notifyViewerStateChange(zoomPercent, scrollSpeed, newTop, newLeft);
   };
 
   const handleMouseUp = () => {
     setIsMouseDown(false);
+  };
+
+  const handleScroll = () => {
+    if (!containerRef.current) return;
+    notifyViewerStateChange(
+      zoomPercent,
+      scrollSpeed,
+      containerRef.current.scrollTop,
+      containerRef.current.scrollLeft
+    );
   };
 
   // Load PDF file
@@ -89,7 +142,7 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ pdfFile, onPdfLoaded }) =>
     if (!pdfDoc || numPages === 0) return;
 
     let isMounted = true;
-    const renderScale = 1.8; // Always render crisp high resolution
+    const renderScale = 1.8;
 
     const renderAllPages = async () => {
       for (let pageNum = 1; pageNum <= numPages; pageNum++) {
@@ -129,6 +182,18 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ pdfFile, onPdfLoaded }) =>
     };
   }, [pdfDoc, numPages]);
 
+  // Restore scroll positions once rendering finishes
+  useEffect(() => {
+    if (!rendering && pdfDoc && containerRef.current) {
+      if (viewerState?.scrollTop !== undefined) {
+        containerRef.current.scrollTop = viewerState.scrollTop;
+      }
+      if (viewerState?.scrollLeft !== undefined) {
+        containerRef.current.scrollLeft = viewerState.scrollLeft;
+      }
+    }
+  }, [rendering, pdfDoc, viewerState?.scrollTop, viewerState?.scrollLeft]);
+
   // Smooth Auto-Scroll loop with sub-pixel accumulator
   useEffect(() => {
     if (!isAutoScrolling || !containerRef.current) return;
@@ -137,13 +202,12 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ pdfFile, onPdfLoaded }) =>
     let lastTime = performance.now();
     scrollAccumulatorRef.current = 0;
 
-    // Map speed level 1..5 to pixels per second
     const speedPixelsPerSecondMap: Record<number, number> = {
-      1: 2.5,  // Muy Lento (smooth 2.5px/s)
-      2: 6,    // Lento (6px/s)
-      3: 14,   // Normal (14px/s)
-      4: 25,   // Medio (25px/s)
-      5: 42,   // Rápido (42px/s)
+      1: 2.5,
+      2: 6,
+      3: 14,
+      4: 25,
+      5: 42,
     };
 
     const speedPxPerSec = speedPixelsPerSecondMap[scrollSpeed] || 6;
@@ -208,6 +272,31 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ pdfFile, onPdfLoaded }) =>
     }
   };
 
+  const handleZoomChange = (newZoom: number) => {
+    const clamped = Math.max(60, Math.min(200, newZoom));
+    setZoomPercent(clamped);
+    if (containerRef.current) {
+      notifyViewerStateChange(
+        clamped,
+        scrollSpeed,
+        containerRef.current.scrollTop,
+        containerRef.current.scrollLeft
+      );
+    }
+  };
+
+  const handleSpeedSelect = (newSpeed: number) => {
+    setScrollSpeed(newSpeed);
+    if (containerRef.current) {
+      notifyViewerStateChange(
+        zoomPercent,
+        newSpeed,
+        containerRef.current.scrollTop,
+        containerRef.current.scrollLeft
+      );
+    }
+  };
+
   return (
     <div className="pdf-viewer-panel">
       {pdfFile && (
@@ -232,7 +321,7 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ pdfFile, onPdfLoaded }) =>
                 <FastForward size={13} className="speed-icon" />
                 <select
                   value={scrollSpeed}
-                  onChange={(e) => setScrollSpeed(Number(e.target.value))}
+                  onChange={(e) => handleSpeedSelect(Number(e.target.value))}
                   className="custom-select speed-select"
                   title="Velocidad de Auto-Scroll"
                 >
@@ -262,11 +351,11 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ pdfFile, onPdfLoaded }) =>
               </div>
             )}
 
-            {/* Visual Zoom Controls (Scales CSS size, keeps crisp rendering) */}
+            {/* Visual Zoom Controls */}
             <div className="btn-group">
               <button
                 className="btn-icon"
-                onClick={() => setZoomPercent((prev) => Math.max(60, prev - 15))}
+                onClick={() => handleZoomChange(zoomPercent - 15)}
                 title="Alejar zoom (reducir tamaño)"
               >
                 <ZoomOut size={14} />
@@ -274,7 +363,7 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ pdfFile, onPdfLoaded }) =>
               <span className="scale-display">{zoomPercent}%</span>
               <button
                 className="btn-icon"
-                onClick={() => setZoomPercent((prev) => Math.min(200, prev + 15))}
+                onClick={() => handleZoomChange(zoomPercent + 15)}
                 title="Acercar zoom (aumentar tamaño)"
               >
                 <ZoomIn size={14} />
@@ -306,6 +395,7 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ pdfFile, onPdfLoaded }) =>
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
+          onScroll={handleScroll}
         >
           {rendering && <div className="pdf-loading">Cargando PDF...</div>}
 
