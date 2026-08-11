@@ -1,5 +1,11 @@
 import type { NoteInfo, ClefType } from '../types';
-import { KEY_SIGNATURES, getStaffDiatonicOffset, getNoteSpellingInKeySignature } from '../utils/musicTheory';
+import {
+  KEY_SIGNATURES,
+  getStaffDiatonicOffset,
+  getNoteSpellingInKeySignature,
+  getKeySignatureAccidentalOffsets,
+} from '../utils/musicTheory';
+import { TrebleClef, Treble8vbClef, BassClef, Bass8vbClef, CClef } from './Clefs';
 
 interface StaffViewerProps {
   lastNote: NoteInfo | null;
@@ -20,6 +26,7 @@ export const StaffViewer: React.FC<StaffViewerProps> = ({
 
   const noteSpelling = lastNote ? getNoteSpellingInKeySignature(lastNote.midi, currentKeySig) : null;
   const diatonicOffset = lastNote ? getStaffDiatonicOffset(lastNote.midi, clef, currentKeySig) : null;
+  const keySigOffsets = getKeySignatureAccidentalOffsets(clef);
 
   const svgWidth = 290;
   const svgHeight = 135;
@@ -90,64 +97,33 @@ export const StaffViewer: React.FC<StaffViewerProps> = ({
 
           <line x1="15" y1={staffBottomY - 4 * lineSpacing} x2="15" y2={staffBottomY} className="staff-barline" />
 
-          {/* Clef Glyphs */}
-          {clef === 'treble' && (
-            <text x="25" y={staffBottomY - 0.5 * lineSpacing} className="clef-glyph treble-clef">
-              🎼
-            </text>
-          )}
+          {/* Clef Glyphs - Authentic SMuFL classic clefs with dedicated 8vb integrated symbols */}
+          {clef === 'treble' && <TrebleClef x={34} y={staffBottomY - 1 * lineSpacing} />}
+          {clef === 'treble8vb' && <Treble8vbClef x={34} y={staffBottomY - 1 * lineSpacing} />}
 
-          {clef === 'treble8vb' && (
-            <g className="clef-8vb-group">
-              <text x="25" y={staffBottomY - 0.5 * lineSpacing} className="clef-glyph treble-clef">
-                🎼
+          {clef === 'bass' && <BassClef x={28} y={staffBottomY - 3 * lineSpacing} />}
+          {clef === 'bass8vb' && <Bass8vbClef x={28} y={staffBottomY - 3 * lineSpacing} />}
+
+          {clef === 'alto' && <CClef x={32} y={staffBottomY - 2 * lineSpacing} />}
+          {clef === 'tenor' && <CClef x={32} y={staffBottomY - 3 * lineSpacing} />}
+
+          {/* Key Signature Accidentals aligned to exact music theory staff positions */}
+          {currentKeySig.sharps.map((_, idx) => {
+            const offset = keySigOffsets.sharps[idx];
+            return (
+              <text key={`sharp-${idx}`} x={62 + idx * 10} y={getNoteY(offset) + 3.5} className="key-accidental">
+                ♯
               </text>
-              <text x="32" y={staffBottomY + 12} className="clef-8-tag">
-                8
+            );
+          })}
+          {currentKeySig.flats.map((_, idx) => {
+            const offset = keySigOffsets.flats[idx];
+            return (
+              <text key={`flat-${idx}`} x={62 + idx * 10} y={getNoteY(offset) + 3.5} className="key-accidental">
+                ♭
               </text>
-            </g>
-          )}
-
-          {clef === 'bass' && (
-            <text x="25" y={staffBottomY - 1.8 * lineSpacing} className="clef-glyph bass-clef">
-              𝄢
-            </text>
-          )}
-
-          {clef === 'bass8vb' && (
-            <g className="clef-8vb-group">
-              <text x="25" y={staffBottomY - 1.8 * lineSpacing} className="clef-glyph bass-clef">
-                𝄢
-              </text>
-              <text x="29" y={staffBottomY + 12} className="clef-8-tag">
-                8
-              </text>
-            </g>
-          )}
-
-          {clef === 'alto' && (
-            <text x="25" y={staffBottomY - 1.8 * lineSpacing} className="clef-glyph alto-clef">
-              𝄡
-            </text>
-          )}
-
-          {clef === 'tenor' && (
-            <text x="25" y={staffBottomY - 2.8 * lineSpacing} className="clef-glyph tenor-clef">
-              𝄡
-            </text>
-          )}
-
-          {/* Key Signature Accidentals */}
-          {currentKeySig.sharps.map((_, idx) => (
-            <text key={`sharp-${idx}`} x={65 + idx * 10} y={staffBottomY - ((idx % 4) + 1.5) * lineSpacing} className="key-accidental">
-              ♯
-            </text>
-          ))}
-          {currentKeySig.flats.map((_, idx) => (
-            <text key={`flat-${idx}`} x={65 + idx * 10} y={staffBottomY - ((idx % 4) + 1) * lineSpacing} className="key-accidental">
-              ♭
-            </text>
-          ))}
+            );
+          })}
 
           {/* Ledger Lines */}
           {ledgerLines.map((ly, idx) => (

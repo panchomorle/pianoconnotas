@@ -145,7 +145,7 @@ export const Piano: React.FC<PianoProps> = ({
     <div className="piano-container">
       {/* Compact Piano Controls */}
       <div className="piano-toolbar">
-        <div className="piano-toolbar-group">
+        <div className="piano-toolbar-group gap-2">
           <div className="octave-selector">
             <span className="control-label">Transponer:</span>
             <button
@@ -158,7 +158,7 @@ export const Piano: React.FC<PianoProps> = ({
             </button>
 
             <span className="octave-value">
-              Octava: <strong>{baseOctave}</strong> ({octaveCount} octavas)
+              Octava: <strong>{baseOctave}</strong>
             </span>
 
             <button
@@ -194,7 +194,7 @@ export const Piano: React.FC<PianoProps> = ({
         </div>
 
         <button className="btn btn-secondary btn-small" onClick={onResetAllKeys} title="Restablecer teclas">
-          <RotateCcw size={14} /> Reajustar Teclas
+          <RotateCcw size={14} /> Restablecer
         </button>
       </div>
 

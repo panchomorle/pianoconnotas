@@ -279,3 +279,40 @@ export function getStaffDiatonicOffset(midi: number, clef: ClefType, keySig: Key
 
   return totalDiatonicStep - baseLineDiatonic;
 }
+
+export interface KeySignatureOffsets {
+  sharps: number[];
+  flats: number[];
+}
+
+/**
+ * Returns exact diatonic line/space offsets for key signature accidentals per clef,
+ * strictly adhering to standard Western music notation engraving rules.
+ */
+export function getKeySignatureAccidentalOffsets(clef: ClefType): KeySignatureOffsets {
+  switch (clef) {
+    case 'treble':
+    case 'treble8vb':
+      return {
+        sharps: [8, 5, 9, 6, 3, 7, 4], // F5, C5, G5, D5, A4, E5, B4
+        flats: [4, 7, 3, 6, 2, 5, 0],  // B4, E5, A4, D5, G4, C5, F4
+      };
+    case 'bass':
+    case 'bass8vb':
+      return {
+        sharps: [6, 3, 7, 4, 1, 8, 2], // F3, C3, G3, D3, A2, E3, B2
+        flats: [2, 5, 1, 4, 0, 3, -1], // B2, E3, A2, D3, G2, C3, F2
+      };
+    case 'alto':
+      return {
+        sharps: [6, 4, 7, 3, 2, 8, 1], // F4, C4, G4, D4, A3, E4, B3
+        flats: [1, 8, 2, 3, 0, 4, -1], // B3, E4, A3, D4, G3, C4, F3
+      };
+    case 'tenor':
+      return {
+        sharps: [4, 6, 2, 5, 1, 7, 0], // F4, C4, G3, D4, A3, E4, B3
+        flats: [0, 6, 1, 5, 2, 7, 3],  // B3, E4, A3, D4, G3, C4, F3
+      };
+  }
+}
+

@@ -19,9 +19,43 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ pdfFile, onPdfLoaded }) =>
   const [isAutoScrolling, setIsAutoScrolling] = useState<boolean>(false);
   const [scrollSpeed, setScrollSpeed] = useState<number>(2);
 
+  // Mouse drag panning state (hand cursor drag across sheet music)
+  const [isMouseDown, setIsMouseDown] = useState<boolean>(false);
+  const dragStartRef = useRef<{ startX: number; startY: number; scrollLeft: number; scrollTop: number }>({
+    startX: 0,
+    startY: 0,
+    scrollLeft: 0,
+    scrollTop: 0,
+  });
+
   const containerRef = useRef<HTMLDivElement>(null);
   const pagesCanvasRef = useRef<Map<number, HTMLCanvasElement>>(new Map());
   const scrollAccumulatorRef = useRef<number>(0);
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Only drag with left mouse button (button 0)
+    if (e.button !== 0 || !containerRef.current) return;
+    setIsMouseDown(true);
+    dragStartRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      scrollLeft: containerRef.current.scrollLeft,
+      scrollTop: containerRef.current.scrollTop,
+    };
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isMouseDown || !containerRef.current) return;
+    e.preventDefault();
+    const dx = e.clientX - dragStartRef.current.startX;
+    const dy = e.clientY - dragStartRef.current.startY;
+    containerRef.current.scrollLeft = dragStartRef.current.scrollLeft - dx;
+    containerRef.current.scrollTop = dragStartRef.current.scrollTop - dy;
+  };
+
+  const handleMouseUp = () => {
+    setIsMouseDown(false);
+  };
 
   // Load PDF file
   useEffect(() => {
@@ -265,7 +299,14 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ pdfFile, onPdfLoaded }) =>
           </label>
         </div>
       ) : (
-        <div className="pdf-scroll-container" ref={containerRef}>
+        <div
+          className={`pdf-scroll-container ${isMouseDown ? 'is-dragging' : ''}`}
+          ref={containerRef}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+        >
           {rendering && <div className="pdf-loading">Cargando PDF...</div>}
 
           {Array.from({ length: numPages }, (_, index) => {
