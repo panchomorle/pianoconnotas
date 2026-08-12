@@ -168,7 +168,7 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
 
         {/* Action: New Score */}
         <div className="drawer-action-section">
-          <button className="btn-new-score" onClick={onNewScore}>
+          <button className="btn-new-score" onClick={onNewScore} data-tour="drawer-new-score">
             <PlusCircle size={18} />
             <span>Nueva partitura</span>
           </button>

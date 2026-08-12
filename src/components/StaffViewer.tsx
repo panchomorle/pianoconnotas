@@ -51,10 +51,10 @@ export const StaffViewer: React.FC<StaffViewerProps> = ({
   }
 
   return (
-    <div className="staff-panel">
+    <div className="staff-panel" data-tour="staff-panel">
       <div className="staff-controls-inline">
         <div className="select-group">
-          <label htmlFor="clef-select">Clave:</label>
+          <label htmlFor="clef-select"><strong>Clave:</strong></label>
           <select
             id="clef-select"
             value={clef}
@@ -71,7 +71,7 @@ export const StaffViewer: React.FC<StaffViewerProps> = ({
         </div>
 
         <div className="select-group">
-          <label htmlFor="keysig-select">Armadura:</label>
+          <label htmlFor="keysig-select"><strong>Armadura:</strong></label>
           <select
             id="keysig-select"
             value={keySigId}

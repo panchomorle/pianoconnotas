@@ -6,6 +6,8 @@ import { KeyRebindModal } from './components/KeyRebindModal';
 import { HamburgerMenu } from './components/HamburgerMenu';
 import { TermsModal } from './components/TermsModal';
 import { ContactModal } from './components/ContactModal';
+import { TourWelcomeModal } from './components/TourWelcomeModal';
+import { GuidedTour } from './components/GuidedTour';
 
 import type { NoteInfo, ClefType, KeyMapping, SavedScore } from './types';
 import { audioEngine } from './utils/audio';
@@ -13,7 +15,7 @@ import { getMidiNumber, getNoteInfoFromMidi } from './utils/musicTheory';
 import { loadSavedKeybindings, saveKeybindings, DEFAULT_KEYMAPPING } from './utils/keybindings';
 import { saveScore, getMostRecentScore, getScore, getAllScoresOrderedByRecent } from './utils/db';
 
-import { Sun, Moon, GripVertical, Menu, FileText } from 'lucide-react';
+import { Sun, Moon, GripVertical, Menu, FileText, HelpCircle } from 'lucide-react';
 
 export function App() {
 
@@ -47,7 +49,17 @@ export function App() {
 
   const [showTermsModal, setShowTermsModal] = useState<boolean>(false);
   const [showContactModal, setShowContactModal] = useState<boolean>(false);
+  const [showTourWelcomeModal, setShowTourWelcomeModal] = useState<boolean>(false);
+  const [isTourActive, setIsTourActive] = useState<boolean>(false);
   const [refreshRecentsTrigger, setRefreshRecentsTrigger] = useState<number>(0);
+
+  // Auto-show welcome modal on first visit
+  useEffect(() => {
+    const tourSeen = localStorage.getItem('pianoconnotas_tour_completed');
+    if (!tourSeen) {
+      setShowTourWelcomeModal(true);
+    }
+  }, []);
 
   // Drag Resizable Splitter State
   const [leftPanelWidth, setLeftPanelWidth] = useState<number>(310);
@@ -598,8 +610,18 @@ export function App() {
               className="hamburger-btn"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               title={isMenuOpen ? 'Ocultar menú' : 'Mostrar menú'}
+              data-tour="hamburger-btn"
             >
               <Menu size={18} />
+            </button>
+
+            <button
+              className="btn-icon tour-trigger-btn"
+              onClick={() => setShowTourWelcomeModal(true)}
+              title="Guía y Tour"
+              data-tour="tour-btn"
+            >
+              <HelpCircle size={16} />
             </button>
 
             <div className="app-brand">
@@ -615,7 +637,7 @@ export function App() {
             )}
           </div>
 
-          <div className="theme-toggle-container">
+          <div className="theme-toggle-container" data-tour="theme-toggle">
             <button
               className="btn-icon theme-btn"
               onClick={toggleTheme}
@@ -693,6 +715,34 @@ export function App() {
 
       {/* Developer Contact Modal */}
       {showContactModal && <ContactModal onClose={() => setShowContactModal(false)} />}
+
+      {/* Tour Welcome Modal */}
+      {showTourWelcomeModal && (
+        <TourWelcomeModal
+          onClose={() => setShowTourWelcomeModal(false)}
+          onStartTour={() => {
+            setShowTourWelcomeModal(false);
+            setIsTourActive(true);
+          }}
+          onOpenTerms={() => {
+            setShowTourWelcomeModal(false);
+            setShowTermsModal(true);
+          }}
+        />
+      )}
+
+      {/* Guided Tour Overlay Component */}
+      <GuidedTour
+        isActive={isTourActive}
+        onFinish={() => {
+          setIsTourActive(false);
+          localStorage.setItem('pianoconnotas_tour_completed', 'true');
+        }}
+        isMobile={isMobile}
+        onCloseDrawer={() => {
+          if (isMobile) setIsMenuOpen(false);
+        }}
+      />
     </div>
   );
 }

@@ -146,7 +146,7 @@ export const Piano: React.FC<PianoProps> = ({
       {/* Compact Piano Controls */}
       <div className="piano-toolbar">
         <div className="piano-toolbar-group gap-2">
-          <div className="octave-selector">
+          <div className="octave-selector" data-tour="octave-selector">
             <span className="control-label">Transponer:</span>
             <button
               className="btn-icon"
@@ -172,7 +172,7 @@ export const Piano: React.FC<PianoProps> = ({
           </div>
 
           {/* Volume Control Slider */}
-          <div className="volume-control-box" title="Ajustar volumen del piano">
+          <div className="volume-control-box" data-tour="volume-control" title="Ajustar volumen del piano">
             <button
               className="btn-icon"
               onClick={() => onVolumeChange(volume > 0 ? 0 : 0.8)}
@@ -201,7 +201,7 @@ export const Piano: React.FC<PianoProps> = ({
       {/* Keyboard Bed */}
       {isMobile ? (
         /* Mobile 2-Step Stacked Layout */
-        <div className="piano-keyboard-steps">
+        <div className="piano-keyboard-steps" data-tour="piano-keys">
           {Array.from({ length: octaveCount }, (_, octaveIndex) => {
             const stepStartRelIdx = octaveIndex * 12;
             const stepSemitones = Array.from({ length: 12 }, (_, i) => stepStartRelIdx + i);
@@ -243,7 +243,7 @@ export const Piano: React.FC<PianoProps> = ({
         </div>
       ) : (
         /* Desktop 1-Row Layout */
-        <div className="piano-keyboard">
+        <div className="piano-keyboard" data-tour="piano-keys">
           {desktopWhiteKeys.map((relativeIndex) => {
             const whiteIdx = desktopSemitoneWhiteIndexMap[relativeIndex];
             const leftPercent = whiteIdx * desktopWhiteKeyWidthPercent;
