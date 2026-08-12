@@ -2,6 +2,7 @@ import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from
 import type { SavedScore } from '../types';
 import { getRecentScoresPaged, deleteScore } from '../utils/db';
 import { PlusCircle, FileText, Trash2, PanelLeftClose, ShieldCheck, Clock } from 'lucide-react';
+import { DeleteScoreModal } from './DeleteScoreModal';
 
 const GithubIcon: React.FC<{ size?: number; className?: string }> = ({ size = 16, className = '' }) => (
   <svg
@@ -49,6 +50,9 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
   const [offset, setOffset] = useState<number>(0);
   const [hasMore, setHasMore] = useState<boolean>(true);
   const [loading, setLoading] = useState<boolean>(false);
+
+  const [scoreToDelete, setScoreToDelete] = useState<SavedScore | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const itemsRef = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -127,16 +131,23 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
     }
   };
 
-  const handleDelete = async (e: React.MouseEvent, id: string) => {
+  const handleDeleteClick = (e: React.MouseEvent, score: SavedScore) => {
     e.stopPropagation();
-    if (window.confirm('¿Eliminar esta partitura de las recientes?')) {
-      try {
-        await deleteScore(id);
-        setScores((prev) => prev.filter((s) => s.id !== id));
-        onDeleteScore(id);
-      } catch (err) {
-        console.error('Error deleting score:', err);
-      }
+    setScoreToDelete(score);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!scoreToDelete) return;
+    setIsDeleting(true);
+    try {
+      await deleteScore(scoreToDelete.id);
+      setScores((prev) => prev.filter((s) => s.id !== scoreToDelete.id));
+      onDeleteScore(scoreToDelete.id);
+      setScoreToDelete(null);
+    } catch (err) {
+      console.error('Error deleting score:', err);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -166,7 +177,7 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
           </button>
         </div>
 
-        {/* Action: New Score */}
+        {/* Action Button: Nueva Partitura */}
         <div className="drawer-action-section">
           <button className="btn-new-score" onClick={onNewScore} data-tour="drawer-new-score">
             <PlusCircle size={18} />
@@ -220,7 +231,7 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
 
                     <button
                       className="recent-delete-btn"
-                      onClick={(e) => handleDelete(e, score.id)}
+                      onClick={(e) => handleDeleteClick(e, score)}
                       title="Eliminar de recientes"
                     >
                       <Trash2 size={14} />
@@ -247,6 +258,16 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
           </button>
         </div>
       </aside>
+
+      {/* Delete Confirmation Modal */}
+      {scoreToDelete && (
+        <DeleteScoreModal
+          score={scoreToDelete}
+          isDeleting={isDeleting}
+          onConfirm={handleConfirmDelete}
+          onClose={() => !isDeleting && setScoreToDelete(null)}
+        />
+      )}
     </>
   );
 };
