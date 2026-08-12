@@ -1,6 +1,6 @@
 {
-  "name": "PianoConNotas - Piano Interactivo con Pentagrama",
-  "short_name": "PianoConNotas",
+  "name": "Piano con Notas - Piano Interactivo con Pentagrama",
+  "short_name": "Piano con Notas",
   "description": "Toca el piano interactivo con tu teclado informático, visualiza notas en pentagrama y lee partituras en PDF.",
   "start_url": "/",
   "display": "standalone",
