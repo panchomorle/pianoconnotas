@@ -1,19 +1,98 @@
 <!doctype html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="description" content="Toca el piano interactivo con tu teclado. Asigna teclas personalizadas, visualiza notas en pentagrama (clave y armadura) y consulta partituras en PDF." />
-    <title>PianoConNotas - Piano Interactivo con Pentagrama y Partituras PDF</title>
 
-    <!-- Google Fonts: Inter & Outfit -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="apple-touch-icon" href="/favicon.svg" />
+  <link rel="manifest" href="/site.webmanifest" />
+  <link rel="canonical" href="https://pianoconnotas.vercel.app/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#4f46e5" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="PianoConNotas" />
+
+  <title>PianoConNotas - Piano Interactivo con Pentagrama y Partituras PDF</title>
+  <meta name="description"
+    content="Toca el piano interactivo con tu teclado. Asigna teclas personalizadas, visualiza notas en pentagrama en tiempo real (clave de sol, fa, do) y lee partituras en PDF gratis." />
+  <meta name="keywords"
+    content="piano interactivo, teclado piano virtual, notas musicales en pentagrama, aprender piano gratis, partituras pdf piano, lector de partituras, clave de sol, clave de fa, clave de do, teoria musical" />
+  <meta name="robots" content="index, follow" />
+  <meta name="author" content="PianoConNotas" />
+
+  <!-- Google Site Verification (Conservado) -->
+  <meta name="google-site-verification" content="4gRm3Rcg-EdhHjOSaO3izT3ipe80ATmwENuSSrsk2LM" />
+
+  <!-- Open Graph / Facebook / WhatsApp -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="PianoConNotas" />
+  <meta property="og:title" content="PianoConNotas - Piano Interactivo con Pentagrama y Partituras PDF" />
+  <meta property="og:description"
+    content="Toca el piano interactivo con tu teclado informático, visualiza notas en tiempo real en pentagrama (clave de sol, fa, do) y lee partituras en PDF." />
+  <meta property="og:url" content="https://pianoconnotas.vercel.app/" />
+  <meta property="og:image" content="https://pianoconnotas.vercel.app/og-image.svg" />
+  <meta property="og:image:type" content="image/svg+xml" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="PianoConNotas - Aplicación Web de Piano Interactivo y Pentagrama" />
+  <meta property="og:locale" content="es_ES" />
+
+  <!-- Twitter / X -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="PianoConNotas - Piano Interactivo con Pentagrama y Partituras PDF" />
+  <meta name="twitter:description"
+    content="Toca el piano interactivo con tu teclado informático, visualiza notas en tiempo real en pentagrama y lee partituras en PDF." />
+  <meta name="twitter:image" content="https://pianoconnotas.vercel.app/og-image.svg" />
+
+  <!-- Google Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700&display=swap"
+    rel="stylesheet">
+
+  <!-- Schema.org JSON-LD Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "PianoConNotas",
+    "url": "https://pianoconnotas.vercel.app/",
+    "description": "Aplicación web interactiva para tocar el piano con el teclado del ordenador, visualizar notas musicales en pentagrama en tiempo real y consultar partituras en formato PDF.",
+    "applicationCategory": "EducationalApplication, MusicApplication",
+    "operatingSystem": "All",
+    "browserRequirements": "Requires JavaScript. Requires HTML5.",
+    "inLanguage": "es",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "featureList": [
+      "Piano interactivo con asignación de teclado personalizada",
+      "Visualización en pentagrama interactivo con clave de sol, fa y do",
+      "Lector e importador de partituras PDF con desplazamiento y zoom",
+      "Detección de armaduras de clave y notas en tiempo real",
+      "Modo oscuro y modo claro"
+    ]
+  }
+  </script>
+</head>
+
+<body>
+  <div id="root"></div>
+  <noscript>
+    <div style="padding: 20px; font-family: sans-serif; text-align: center;">
+      <h1>PianoConNotas - Piano Interactivo y Pentagrama</h1>
+      <p>PianoConNotas es una aplicación web interactiva que te permite tocar el piano directamente usando el teclado de
+        tu ordenador, visualizar las notas en tiempo real en un pentagrama (claves de Sol, Fa y Do) y leer partituras
+        musicales en formato PDF.</p>
+      <p>Por favor habilita JavaScript en tu navegador para utilizar todas las funciones interactivas.</p>
+    </div>
+  </noscript>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
 </html>
