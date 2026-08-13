@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { Upload, ZoomIn, ZoomOut, Trash2, FileText, Play, Pause, FastForward } from 'lucide-react';
 
@@ -29,6 +29,7 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
   const [scrollSpeed, setScrollSpeed] = useState<number>(viewerState?.scrollSpeed ?? 2);
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [rendering, setRendering] = useState<boolean>(false);
+  const [containerWidth, setContainerWidth] = useState<number>(800);
 
   const [isMobile, setIsMobile] = useState<boolean>(() =>
     typeof window !== 'undefined' ? window.innerWidth < 768 : false
@@ -65,7 +66,13 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
   const scrollAccumulatorRef = useRef<number>(0);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Synchronize viewerState props when changing active score
+  // Ref to ensure initial scroll position is restored only once per document load
+  const hasRestoredScrollRef = useRef<boolean>(false);
+
+  // Ref to hold target focal scroll positions right after zoom adjustments
+  const pendingZoomFocalRef = useRef<{ targetScrollTop: number; targetScrollLeft: number } | null>(null);
+
+  // Synchronize viewerState props when switching active score
   useEffect(() => {
     if (viewerState?.zoomPercent !== undefined) {
       setZoomPercent(viewerState.zoomPercent);
@@ -90,6 +97,55 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
     }, 350);
   };
 
+  // ResizeObserver to adapt base width when splitter/window resizes
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const updateWidth = () => {
+      if (container.clientWidth > 0) {
+        setContainerWidth(container.clientWidth);
+      }
+    };
+
+    updateWidth();
+    const observer = new ResizeObserver(() => {
+      updateWidth();
+    });
+
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [pdfFile]);
+
+  // Window-level mouse panning events while dragging
+  useEffect(() => {
+    if (!isMouseDown) return;
+
+    const handleWindowMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current) return;
+      const dx = e.clientX - dragStartRef.current.startX;
+      const dy = e.clientY - dragStartRef.current.startY;
+      const newLeft = dragStartRef.current.scrollLeft - dx;
+      const newTop = dragStartRef.current.scrollTop - dy;
+
+      containerRef.current.scrollLeft = newLeft;
+      containerRef.current.scrollTop = newTop;
+      notifyViewerStateChange(zoomPercent, scrollSpeed, newTop, newLeft);
+    };
+
+    const handleWindowMouseUp = () => {
+      setIsMouseDown(false);
+    };
+
+    window.addEventListener('mousemove', handleWindowMouseMove);
+    window.addEventListener('mouseup', handleWindowMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleWindowMouseMove);
+      window.removeEventListener('mouseup', handleWindowMouseUp);
+    };
+  }, [isMouseDown, zoomPercent, scrollSpeed]);
+
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.button !== 0 || !containerRef.current) return;
     setIsMouseDown(true);
@@ -101,25 +157,8 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
     };
   };
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isMouseDown || !containerRef.current) return;
-    e.preventDefault();
-    const dx = e.clientX - dragStartRef.current.startX;
-    const dy = e.clientY - dragStartRef.current.startY;
-    const newLeft = dragStartRef.current.scrollLeft - dx;
-    const newTop = dragStartRef.current.scrollTop - dy;
-
-    containerRef.current.scrollLeft = newLeft;
-    containerRef.current.scrollTop = newTop;
-    notifyViewerStateChange(zoomPercent, scrollSpeed, newTop, newLeft);
-  };
-
-  const handleMouseUp = () => {
-    setIsMouseDown(false);
-  };
-
   const handleScroll = () => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || pendingZoomFocalRef.current) return;
     notifyViewerStateChange(
       zoomPercent,
       scrollSpeed,
@@ -128,15 +167,34 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
     );
   };
 
+  // Synchronous focal adjustment after DOM commit for rock-solid zoom stability
+  useLayoutEffect(() => {
+    if (pendingZoomFocalRef.current && containerRef.current) {
+      const { targetScrollTop, targetScrollLeft } = pendingZoomFocalRef.current;
+      containerRef.current.scrollTop = targetScrollTop;
+      containerRef.current.scrollLeft = targetScrollLeft;
+      pendingZoomFocalRef.current = null;
+
+      notifyViewerStateChange(
+        zoomPercent,
+        scrollSpeed,
+        targetScrollTop,
+        targetScrollLeft
+      );
+    }
+  }, [zoomPercent, scrollSpeed]);
+
   // Load PDF file
   useEffect(() => {
     if (!pdfFile) {
       setPdfDoc(null);
       setNumPages(0);
       setIsAutoScrolling(false);
+      hasRestoredScrollRef.current = false;
       return;
     }
 
+    hasRestoredScrollRef.current = false;
     const fileReader = new FileReader();
     fileReader.onload = async (e) => {
       const typedArray = new Uint8Array(e.target?.result as ArrayBuffer);
@@ -155,12 +213,12 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
     fileReader.readAsArrayBuffer(pdfFile);
   }, [pdfFile]);
 
-  // Render pages at crisp high resolution (renderScale = 1.8)
+  // Render pages at crisp high resolution (renderScale = 2.0)
   useEffect(() => {
     if (!pdfDoc || numPages === 0) return;
 
     let isMounted = true;
-    const renderScale = 1.8;
+    const renderScale = 2.0;
 
     const renderAllPages = async () => {
       for (let pageNum = 1; pageNum <= numPages; pageNum++) {
@@ -200,17 +258,58 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
     };
   }, [pdfDoc, numPages]);
 
-  // Restore scroll positions once rendering finishes
+  // Restore scroll positions ONLY ONCE when opening/rendering a document
   useEffect(() => {
-    if (!rendering && pdfDoc && containerRef.current) {
+    if (!rendering && pdfDoc && !hasRestoredScrollRef.current && containerRef.current) {
       if (viewerState?.scrollTop !== undefined) {
         containerRef.current.scrollTop = viewerState.scrollTop;
       }
       if (viewerState?.scrollLeft !== undefined) {
         containerRef.current.scrollLeft = viewerState.scrollLeft;
       }
+      hasRestoredScrollRef.current = true;
     }
-  }, [rendering, pdfDoc, viewerState?.scrollTop, viewerState?.scrollLeft]);
+  }, [rendering, pdfDoc]);
+
+  // Ctrl + Wheel native listener to zoom centered at cursor
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleNativeWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const delta = e.deltaY < 0 ? 15 : -15;
+
+        setZoomPercent((prevZoom) => {
+          const nextZoom = Math.max(60, Math.min(200, prevZoom + delta));
+          if (nextZoom === prevZoom) return prevZoom;
+
+          const rect = container.getBoundingClientRect();
+          const cursorX = e.clientX - rect.left;
+          const cursorY = e.clientY - rect.top;
+
+          const contentX = container.scrollLeft + cursorX;
+          const contentY = container.scrollTop + cursorY;
+
+          const scale = nextZoom / prevZoom;
+          const newContentX = contentX * scale;
+          const newContentY = contentY * scale;
+
+          const targetScrollLeft = Math.max(0, Math.round(newContentX - cursorX));
+          const targetScrollTop = Math.max(0, Math.round(newContentY - cursorY));
+
+          pendingZoomFocalRef.current = { targetScrollTop, targetScrollLeft };
+          return nextZoom;
+        });
+      }
+    };
+
+    container.addEventListener('wheel', handleNativeWheel, { passive: false });
+    return () => {
+      container.removeEventListener('wheel', handleNativeWheel);
+    };
+  }, []);
 
   // Smooth Auto-Scroll loop with sub-pixel accumulator
   useEffect(() => {
@@ -286,21 +385,38 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
   const jumpToPage = (pageNum: number) => {
     const canvas = pagesCanvasRef.current.get(pageNum);
     if (canvas && containerRef.current) {
-      canvas.scrollIntoView({ behavior: 'smooth' });
+      canvas.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
   const handleZoomChange = (newZoom: number) => {
     const clamped = Math.max(60, Math.min(200, newZoom));
-    setZoomPercent(clamped);
-    if (containerRef.current) {
-      notifyViewerStateChange(
-        clamped,
-        scrollSpeed,
-        containerRef.current.scrollTop,
-        containerRef.current.scrollLeft
-      );
+    if (clamped === zoomPercent) return;
+
+    const container = containerRef.current;
+    if (container) {
+      const currentScrollTop = container.scrollTop;
+      const currentScrollLeft = container.scrollLeft;
+      const clientHeight = container.clientHeight;
+      const clientWidth = container.clientWidth;
+
+      // Focal point in content coordinates
+      const centerY = currentScrollTop + clientHeight / 2;
+      const centerX = currentScrollLeft + clientWidth / 2;
+
+      // Scaling factor between target zoom and current zoom
+      const scale = clamped / zoomPercent;
+
+      const newCenterY = centerY * scale;
+      const newCenterX = centerX * scale;
+
+      const targetScrollTop = Math.max(0, Math.round(newCenterY - clientHeight / 2));
+      const targetScrollLeft = Math.max(0, Math.round(newCenterX - clientWidth / 2));
+
+      pendingZoomFocalRef.current = { targetScrollTop, targetScrollLeft };
     }
+
+    setZoomPercent(clamped);
   };
 
   const handleSpeedSelect = (newSpeed: number) => {
@@ -314,6 +430,10 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
       );
     }
   };
+
+  // Base page width fits within the container (leaving margin and scrollbar space)
+  const basePageWidth = Math.max(280, Math.min(containerWidth - 28, 850));
+  const computedPageWidth = Math.round(basePageWidth * (zoomPercent / 100));
 
   return (
     <div className="pdf-viewer-panel">
@@ -410,32 +530,31 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
           className={`pdf-scroll-container ${isMouseDown ? 'is-dragging' : ''}`}
           ref={containerRef}
           onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
           onScroll={handleScroll}
         >
           {rendering && <div className="pdf-loading">Cargando PDF...</div>}
 
-          {Array.from({ length: numPages }, (_, index) => {
-            const pageNum = index + 1;
-            return (
-              <div
-                key={pageNum}
-                className="pdf-page-wrapper"
-                style={{ width: `${zoomPercent}%`, maxWidth: `${Math.max(900, (900 * zoomPercent) / 100)}px` }}
-              >
-                <canvas
-                  ref={(el) => {
-                    if (el) pagesCanvasRef.current.set(pageNum, el);
-                    else pagesCanvasRef.current.delete(pageNum);
-                  }}
-                  className="pdf-page-canvas"
-                />
-                <span className="page-number-footer">Página {pageNum} de {numPages}</span>
-              </div>
-            );
-          })}
+          <div className="pdf-pages-track">
+            {Array.from({ length: numPages }, (_, index) => {
+              const pageNum = index + 1;
+              return (
+                <div
+                  key={pageNum}
+                  className="pdf-page-wrapper"
+                  style={{ width: `${computedPageWidth}px`, maxWidth: 'none' }}
+                >
+                  <canvas
+                    ref={(el) => {
+                      if (el) pagesCanvasRef.current.set(pageNum, el);
+                      else pagesCanvasRef.current.delete(pageNum);
+                    }}
+                    className="pdf-page-canvas"
+                  />
+                  <span className="page-number-footer">Página {pageNum} de {numPages}</span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

@@ -607,10 +607,7 @@ body {
   background: var(--bg-panel);
   border-radius: var(--radius-md);
   padding: 14px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
+  box-sizing: border-box;
   scrollbar-width: auto;
   scrollbar-color: var(--accent-blue) var(--bg-panel);
 }
@@ -621,6 +618,7 @@ body {
 
 .pdf-scroll-container::-webkit-scrollbar {
   width: 10px;
+  height: 10px;
 }
 
 .pdf-scroll-container::-webkit-scrollbar-track {
@@ -633,6 +631,17 @@ body {
   border-radius: 4px;
 }
 
+.pdf-pages-track {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  min-width: 100%;
+  width: max-content;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
 .pdf-page-wrapper {
   display: flex;
   flex-direction: column;
@@ -641,11 +650,9 @@ body {
   border-radius: 4px;
   overflow: hidden;
   background: #ffffff;
-  width: 100%;
-  max-width: 900px;
   flex-shrink: 0;
-  /* Prevents flex from squishing page heights! */
   margin-bottom: 12px;
+  box-sizing: border-box;
 }
 
 .pdf-page-canvas {
@@ -1503,6 +1510,9 @@ body {
 
   .pdf-scroll-container {
     padding: 4px;
+  }
+
+  .pdf-pages-track {
     gap: 8px;
   }
 
