@@ -491,16 +491,20 @@ body {
   gap: 6px;
   font-size: 0.82rem;
   font-weight: 600;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .icon-blue {
   color: var(--accent-blue);
+  flex-shrink: 0;
 }
 
 .pdf-filename {
   font-size: 0.78rem;
   color: var(--text-secondary);
-  max-width: 180px;
+  max-width: 100%;
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -530,11 +534,16 @@ body {
 
 .speed-icon {
   color: var(--accent-blue);
+  flex-shrink: 0;
 }
 
 .speed-select {
   padding: 2px 4px;
   font-size: 0.72rem;
+}
+
+.btn-remove-pdf {
+  margin-left: 8px;
 }
 
 .page-jump-select-box {
@@ -1447,16 +1456,49 @@ body {
   .pdf-toolbar {
     flex-wrap: nowrap;
     gap: 4px;
-    overflow-x: auto;
+    overflow: hidden;
+  }
+
+  .pdf-title {
+    flex: 1 1 auto;
+    min-width: 0;
   }
 
   .pdf-filename {
-    max-width: 100px;
+    max-width: 100%;
+    min-width: 0;
   }
 
   .pdf-controls {
     flex-wrap: nowrap;
     gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .speed-icon {
+    display: none !important;
+  }
+
+  .speed-controls svg {
+    flex-shrink: 0;
+  }
+
+  .speed-select {
+    min-width: 44px;
+    width: 44px;
+    padding: 2px 2px;
+    font-size: 0.72rem;
+    flex-shrink: 0;
+  }
+
+  .btn-remove-pdf {
+    margin-left: 6px;
+  }
+
+  .auto-scroll-label,
+  .remove-pdf-label,
+  .page-jump-select-box {
+    display: none !important;
   }
 
   .pdf-scroll-container {

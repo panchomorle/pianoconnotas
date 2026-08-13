@@ -30,6 +30,24 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [rendering, setRendering] = useState<boolean>(false);
 
+  const [isMobile, setIsMobile] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false
+  );
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 768px)');
+    const handleChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+
+    setIsMobile(mediaQuery.matches);
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    } else {
+      mediaQuery.addListener(handleChange);
+      return () => mediaQuery.removeListener(handleChange);
+    }
+  }, []);
+
   // Auto-scroll states
   const [isAutoScrolling, setIsAutoScrolling] = useState<boolean>(false);
 
@@ -314,7 +332,7 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
                 onClick={() => setIsAutoScrolling(!isAutoScrolling)}
               >
                 {isAutoScrolling ? <Pause size={13} /> : <Play size={13} />}
-                <span>{isAutoScrolling ? 'Pausar' : 'Auto-Scroll'}</span>
+                <span className="auto-scroll-label">{isAutoScrolling ? 'Pausar' : 'Auto-Scroll'}</span>
               </button>
 
               <div className="speed-selector">
@@ -325,11 +343,11 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
                   className="custom-select speed-select"
                   title="Velocidad de Auto-Scroll"
                 >
-                  <option value={1}>1x (Muy Lento)</option>
-                  <option value={2}>2x (Lento)</option>
-                  <option value={3}>3x (Normal)</option>
-                  <option value={4}>4x (Medio)</option>
-                  <option value={5}>5x (Rápido)</option>
+                  <option value={1}>{isMobile ? '1x' : '1x (Muy Lento)'}</option>
+                  <option value={2}>{isMobile ? '2x' : '2x (Lento)'}</option>
+                  <option value={3}>{isMobile ? '3x' : '3x (Normal)'}</option>
+                  <option value={4}>{isMobile ? '4x' : '4x (Medio)'}</option>
+                  <option value={5}>{isMobile ? '5x' : '5x (Rápido)'}</option>
                 </select>
               </div>
             </div>
@@ -370,8 +388,8 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
               </button>
             </div>
 
-            <button className="btn btn-danger btn-small" onClick={() => onPdfLoaded(null)} title="Quitar PDF">
-              <Trash2 size={13} /> Quitar
+            <button className="btn btn-danger btn-small btn-remove-pdf" onClick={() => onPdfLoaded(null)} title="Quitar PDF">
+              <Trash2 size={13} /> <span className="remove-pdf-label">Quitar</span>
             </button>
           </div>
         </div>
