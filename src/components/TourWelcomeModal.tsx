@@ -40,7 +40,7 @@ export const TourWelcomeModal: React.FC<TourWelcomeModalProps> = ({
   }, [onClose]);
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" data-nosnippet onClick={onClose}>
       <div className="modal-content tour-welcome-content" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close-btn" onClick={onClose} title="Cerrar">
           <X size={20} />
@@ -62,7 +62,7 @@ export const TourWelcomeModal: React.FC<TourWelcomeModalProps> = ({
           </p>
 
           {/* Embedded Developer GitHub Card */}
-          <div className="contact-card welcome-dev-card">
+          <div className="contact-card welcome-dev-card" data-nosnippet>
             <div className="developer-info">
               <GithubIcon size={36} className="github-avatar-icon" />
               <div>

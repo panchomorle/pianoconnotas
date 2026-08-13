@@ -34,7 +34,7 @@ export const ContactModal: React.FC<ContactModalProps> = ({ onClose }) => {
   }, [onClose]);
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" data-nosnippet onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close-btn" onClick={onClose} title="Cerrar">
           <X size={20} />
