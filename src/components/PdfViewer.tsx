@@ -2,7 +2,8 @@ import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { Upload, ZoomIn, ZoomOut, Trash2, FileText, Play, Pause, FastForward } from 'lucide-react';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+const PDFJS_CDN_BASE = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = `${PDFJS_CDN_BASE}/build/pdf.worker.min.mjs`;
 
 export interface PdfViewerState {
   zoomPercent?: number;
@@ -200,7 +201,13 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
       const typedArray = new Uint8Array(e.target?.result as ArrayBuffer);
       try {
         setRendering(true);
-        const loadingTask = pdfjsLib.getDocument({ data: typedArray });
+        const loadingTask = pdfjsLib.getDocument({
+          data: typedArray,
+          cMapUrl: `${PDFJS_CDN_BASE}/cmaps/`,
+          cMapPacked: true,
+          standardFontDataUrl: `${PDFJS_CDN_BASE}/standard_fonts/`,
+          wasmUrl: `${PDFJS_CDN_BASE}/wasm/`,
+        });
         const doc = await loadingTask.promise;
         setPdfDoc(doc);
         setNumPages(doc.numPages);
