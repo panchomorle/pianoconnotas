@@ -52,6 +52,18 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({
       },
     },
     {
+      target: 'mic-toggle',
+      title: 'Reconocimiento por Micrófono',
+      description: (
+        <span>
+          Activa el micrófono para cantar o tocar un instrumento y <strong>reconocer notas en tiempo real</strong>. Las notas identificadas se mostrarán automáticamente en el pentagrama e iluminarán las teclas del piano.
+        </span>
+      ),
+      actionBefore: () => {
+        onCloseDrawer();
+      },
+    },
+    {
       target: 'theme-toggle',
       title: 'Modo Claro / Oscuro',
       description: (
@@ -133,7 +145,10 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({
       currentStep.actionBefore();
     }
 
-    const isHeaderStep = currentStep.target === 'hamburger-btn' || currentStep.target === 'theme-toggle';
+    const isHeaderStep =
+      currentStep.target === 'hamburger-btn' ||
+      currentStep.target === 'theme-toggle' ||
+      currentStep.target === 'mic-toggle';
 
     const timer = setTimeout(() => {
       const el = document.querySelector(`[data-tour="${currentStep.target}"]`);
@@ -211,7 +226,10 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({
     }
   };
 
-  const isHeaderStep = currentStep.target === 'hamburger-btn' || currentStep.target === 'theme-toggle';
+  const isHeaderStep =
+    currentStep.target === 'hamburger-btn' ||
+    currentStep.target === 'theme-toggle' ||
+    currentStep.target === 'mic-toggle';
 
   // Position calculation: Header steps render card below header; all body/lower steps render card in upper area (top: 56px)
   const getTooltipStyle = (): React.CSSProperties => {

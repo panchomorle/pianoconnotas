@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Piano } from './components/Piano';
 import { StaffViewer } from './components/StaffViewer';
 import { PdfViewer, type PdfViewerState } from './components/PdfViewer';
@@ -8,10 +8,12 @@ import { TermsModal } from './components/TermsModal';
 import { ContactModal } from './components/ContactModal';
 import { TourWelcomeModal } from './components/TourWelcomeModal';
 import { GuidedTour } from './components/GuidedTour';
+import { MicToggleButton } from './components/MicToggleButton';
 
 import type { NoteInfo, ClefType, KeyMapping, SavedScore } from './types';
 import { audioEngine } from './utils/audio';
 import { getMidiNumber, getNoteInfoFromMidi } from './utils/musicTheory';
+import { PitchDetector } from './utils/pitchDetector';
 import { loadSavedKeybindings, saveKeybindings, DEFAULT_KEYMAPPING } from './utils/keybindings';
 import { saveScore, getMostRecentScore, getScore, getAllScoresOrderedByRecent } from './utils/db';
 
@@ -25,6 +27,64 @@ export function App() {
   const [keyMapping, setKeyMapping] = useState<KeyMapping>(loadSavedKeybindings);
   const [activeMidiSet, setActiveMidiSet] = useState<Set<number>>(new Set());
   const [lastNote, setLastNote] = useState<NoteInfo | null>(null);
+
+  const [isMicActive, setIsMicActive] = useState<boolean>(false);
+  const [isMicInitializing, setIsMicInitializing] = useState<boolean>(false);
+  const [micDetectedMidi, setMicDetectedMidi] = useState<number | null>(null);
+  const pitchDetectorRef = useRef<PitchDetector | null>(null);
+
+  const toggleMicrophone = async () => {
+    if (isMicActive) {
+      if (pitchDetectorRef.current) {
+        pitchDetectorRef.current.stop();
+        pitchDetectorRef.current = null;
+      }
+      setIsMicActive(false);
+      setMicDetectedMidi(null);
+    } else {
+      setIsMicInitializing(true);
+      const detector = new PitchDetector({
+        onNoteDetected: (noteInfo) => {
+          setMicDetectedMidi(noteInfo.midi);
+          setLastNote(noteInfo);
+        },
+        onNoteEnd: () => {
+          setMicDetectedMidi(null);
+        },
+        onError: (err) => {
+          console.error('Error de micrófono:', err);
+          alert('No se pudo acceder al micrófono. Por favor verifica los permisos del navegador.');
+          setIsMicActive(false);
+          setIsMicInitializing(false);
+        },
+      });
+
+      try {
+        await detector.start();
+        pitchDetectorRef.current = detector;
+        setIsMicActive(true);
+      } catch {
+        // Handled in onError
+      } finally {
+        setIsMicInitializing(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (pitchDetectorRef.current) {
+        pitchDetectorRef.current.stop();
+      }
+    };
+  }, []);
+
+  const combinedActiveMidiSet = useMemo(() => {
+    if (micDetectedMidi === null) return activeMidiSet;
+    const combined = new Set(activeMidiSet);
+    combined.add(micDetectedMidi);
+    return combined;
+  }, [activeMidiSet, micDetectedMidi]);
 
   const [clef, setClef] = useState<ClefType>('treble');
   const [keySigId, setKeySigId] = useState<string>('C_maj');
@@ -637,6 +697,14 @@ export function App() {
             )}
           </div>
 
+          <div className="header-center-group">
+            <MicToggleButton
+              isActive={isMicActive}
+              onToggle={toggleMicrophone}
+              isInitializing={isMicInitializing}
+            />
+          </div>
+
           <div className="theme-toggle-container" data-tour="theme-toggle">
             <button
               className="btn-icon theme-btn"
@@ -685,7 +753,7 @@ export function App() {
             baseOctave={baseOctave}
             onBaseOctaveChange={handleBaseOctaveChange}
             keyMapping={keyMapping}
-            activeMidiSet={activeMidiSet}
+            activeMidiSet={combinedActiveMidiSet}
             onNoteStart={startNote}
             onNoteEnd={stopNote}
             onKeyRightClick={(relIdx, info) => setRebindTarget({ relativeIndex: relIdx, noteInfo: info })}

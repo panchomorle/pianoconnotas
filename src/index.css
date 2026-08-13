@@ -87,9 +87,135 @@ body {
 .app-header-minimal {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   padding: 2px 4px;
   flex-shrink: 0;
+  position: relative;
+}
+
+.header-left-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-center-group {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+/* Mic Toggle Button */
+.mic-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+  font-family: var(--font-main);
+  border: 1px solid var(--border-color);
+  user-select: none;
+}
+
+/* Inactive State (Grisaceo) */
+.mic-toggle-btn.inactive {
+  background-color: var(--bg-panel);
+  color: var(--text-secondary);
+  border-color: var(--border-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.mic-toggle-btn.inactive:hover {
+  background-color: var(--bg-card-hover);
+  color: var(--text-primary);
+  border-color: var(--border-highlight);
+}
+
+/* Active State (Azul animado con resplandor) */
+.mic-toggle-btn.active {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
+  border-color: #38bdf8;
+  box-shadow: 0 0 12px rgba(2, 132, 199, 0.45);
+  animation: mic-pulse-glow 2s infinite ease-in-out;
+}
+
+[data-theme="dark"] .mic-toggle-btn.active {
+  background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%);
+  color: #ffffff;
+  border-color: #38bdf8;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.5);
+}
+
+.mic-toggle-btn.active:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 18px rgba(2, 132, 199, 0.65);
+}
+
+.mic-toggle-btn.initializing {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+/* Animated Red Active Indicator Dot */
+.mic-active-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #ef4444;
+  box-shadow: 0 0 6px #ef4444;
+  animation: mic-dot-blink 1.2s infinite alternate ease-in-out;
+}
+
+.mic-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mic-icon.pulse {
+  animation: mic-icon-bounce 1.5s infinite ease-in-out;
+}
+
+@keyframes mic-pulse-glow {
+  0% {
+    box-shadow: 0 0 8px rgba(2, 132, 199, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(56, 189, 248, 0.75), 0 0 30px rgba(2, 132, 199, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 8px rgba(2, 132, 199, 0.4);
+  }
+}
+
+@keyframes mic-dot-blink {
+  0% {
+    opacity: 0.4;
+    transform: scale(0.85);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+@keyframes mic-icon-bounce {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.12);
+  }
 }
 
 .theme-toggle-container {
@@ -108,6 +234,20 @@ body {
   font-size: 0.78rem;
   font-weight: 500;
   color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+  .header-center-group {
+    position: static;
+    transform: none;
+  }
+  .mic-btn-label {
+    display: none;
+  }
+  .mic-toggle-btn {
+    padding: 5px 8px;
+    border-radius: 50%;
+  }
 }
 
 /* Workspace Layout - Takes Full Height */
